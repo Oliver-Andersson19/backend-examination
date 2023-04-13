@@ -1,5 +1,40 @@
+import { createToken } from "../auth/auth.js";
 import { getDbCollection } from "../db/db.js";
 import mongo from 'mongodb'
+
+// Importera socket funktionerna så dom kan triggas här inne
+// Dom körs i createNewMessage, och createNewBroadcastMessage för att meddela klienterna om nytt meddelande
+import { emitNewBroadcast, emitToAllSockets } from "../socket/socket.js";
+
+
+
+
+export function login(req, res) {
+
+    const username = req.body.username;
+    const password = req.body.password;
+
+    // Logga in på konton från databasen
+    getDbCollection("users").findOne( { username: username }).then(user => {
+        if (user) { // check if account exists
+            if (password !== user.password) { // if accounts exists but pw is wrong
+                res.sendStatus(403)
+            } else { // gets run if all credentials are correct
+
+                delete user.password; // delete password from object so it doesnt reach front-end
+                const accessToken = createToken(user)
+                console.log(username + " has logged in")
+                res.json({ accessToken: accessToken })
+
+            }
+        } else { // if account doesnt exist
+            res.sendStatus(403)
+        }
+    });
+
+}
+
+
 
 export function getAllChannels (req, res) {
     // Ger tillbaka alla channels
@@ -13,8 +48,8 @@ export function getAllChannels (req, res) {
 export function getChannel (req, res) {
     // Ger tillbaka en channel
     try {
-        const id = new mongo.ObjectId(req.params.id)
-        getDbCollection("channels").find({ _id: id }).toArray().then(channel => {
+        const channelName = req.params.id
+        getDbCollection("channels").find({ name: channelName }).toArray().then(channel => {
             res.status(200)
             res.json(channel)
         })
@@ -33,50 +68,75 @@ export function getBroadcastMessages(req, res) {
 }
 
 
+// POST
+
 export function createNewMessage(req, res) {
+
     const channelName = req.params.id; // Channel som message pushas in i
 
     const message = { // Bygg upp message från req.body
         sender: req.body.sender,
-        title: req.body.title,
-        content: req.body.content,
+        content: req.body.content
     }
 
+    if(message.sender && message.content && channelName){
+        
+        getDbCollection("channels").find({ name: channelName }).toArray().then(channel => {
+            if (channel.length != 0) { // Kolla om channel finns
+                console.log(channel)
+                // Pusha in message i message array i i rätt channel (kommer från url params)
+                getDbCollection("channels").updateOne( { "name": channelName } ,{ $push: { "messages": message } });
+                
+                emitToAllSockets(); // säg till klient att nytt meddelande har skickats in
 
+                res.status(200)
+                res.json(message)
+            } else {
+                res.status(400)
+                res.json("Channel doesnt exist")
+            }      
+        })
 
-    getDbCollection("channels").find({ name: channelName }).toArray().then(channel => {
-        if (channel.length != 0) { // Kolla om channel finns
-            console.log(channel)
-            // Pusha in message i message array i i rätt channel (kommer från url params)
-            getDbCollection("channels").updateOne( { "name": channelName } ,{ $push: { "messages": message } });
+    } else {
 
-            res.status(200)
-            res.json(message)
-        } else {
-            res.status(400)
-            res.json("Channel doesnt exist")
-        }      
-    })
-    
+        console.log("error")
+        res.sendStatus(400)
+        
+    }
 }
 
 
 
 export function createNewBroadcastMessage(req, res) {
 
+    console.log(req.user)
+
     const message = { // Bygg upp message från req.body
-        sender: req.body.sender,
-        title: req.body.title,
-        content: req.body.content,
+        sender: req.user.username,
+        content: req.body.content
     }
 
-    
-    getDbCollection("broadcast").insertOne(message).then(() => {
-        res.status(200)
-        res.json(message)
-    });
+    if (req.user.role == "admin") {
 
+        if (message.content) {
+        
+            getDbCollection("broadcast").insertOne(message).then(() => {
+                emitNewBroadcast() // säg till klienterna att nytt emergency meddelande har skickats
+                res.status(200)
+                res.json(message)
+            });
+        } else {
     
+            console.log("error")
+            res.sendStatus(400)
+        
+        }
+
+    } else {
+        console.log("unauthorized")
+        res.sendStatus(401)
+    }
+
 }
 
 
@@ -88,20 +148,24 @@ export function createNewChannel(req, res) {
         messages: []
     }
 
-
-    getDbCollection("channels").find({ name: req.body.name }).toArray().then(channelInDb => {
-        if (channelInDb.length == 0) { // Kolla så att channel inte finns
-            
-            getDbCollection("channels").insertOne(channel).then(() => {
-                res.status(200)
-                res.json(channel)
-            });
-            
-        } else {
-            res.status(400)
-            res.json("Channel already exist")
-        }      
-    })
+    if (channel.name) {
+        getDbCollection("channels").find({ name: req.body.name }).toArray().then(channelInDb => {
+            if (channelInDb.length == 0) { // Kolla så att channel inte finns
+                
+                getDbCollection("channels").insertOne(channel).then(() => {
+                    res.status(200)
+                    res.json(channel)
+                });
+                
+            } else {
+                res.status(400)
+                res.json("Channel already exist")
+            }      
+        })
+    } else {
+        console.log("error")
+        res.sendStatus(400)
+    }
 }
 
 
@@ -110,12 +174,19 @@ export function deleteChannel(req, res) {
 
     const channelName = req.params.id;
 
-    getDbCollection("channels").deleteOne( { name: channelName } ).then((result) => {
-        if (result.deletedCount === 1) {
-            res.json("Successfully deleted one document.");
-        } else {
-            res.json("No documents matched the query. Deleted 0 documents.");
-        }
-    })
+    if (channelName) {
+        getDbCollection("channels").deleteOne( { name: channelName } ).then((result) => {
+            if (result.deletedCount === 1) {
+                res.json("Successfully deleted one document.");
+            } else {
+                res.json("No documents matched the query. Deleted 0 documents.");
+            }
+        })
+    } else {
+
+        console.log("error")
+        res.sendStatus(400)
+    }
+
 
 }

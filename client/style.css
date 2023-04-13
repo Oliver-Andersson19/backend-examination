@@ -1,0 +1,26 @@
+.connect-container {
+    margin-bottom: 5em
+}
+
+.chat-container {
+    display: flex;
+    gap: 1em;
+}
+
+.chat-log {
+    width: 12em;
+
+    border: 2px solid black;
+    padding: .5em .5em;
+}
+
+.broadcast {
+    width: 12em;
+
+    border: 2px solid red;
+    padding: .5em .5em;
+}
+
+.chat-log p {
+    margin: .5em
+}

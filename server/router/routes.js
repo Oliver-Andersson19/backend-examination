@@ -1,5 +1,6 @@
 import express from "express";
-import { createNewBroadcastMessage, createNewChannel, createNewMessage, getAllChannels, getBroadcastMessages, getChannel, deleteChannel } from "../controller/controller.js";
+import { login, createNewBroadcastMessage, createNewChannel, createNewMessage, getAllChannels, getBroadcastMessages, getChannel, deleteChannel } from "../controller/controller.js";
+import { authenticateToken } from "../auth/auth.js";
 const router = express.Router()
 
 
@@ -16,9 +17,11 @@ router.get('/ducks/api/broadcast/', getBroadcastMessages)
 
 
 // POST
+router.post('/ducks/api/login', login)
+
 router.post('/ducks/api/channel/:id', createNewMessage)
 
-router.post('/ducks/api/broadcast/', createNewBroadcastMessage)
+router.post('/ducks/api/broadcast/', authenticateToken, createNewBroadcastMessage)
 
 
 

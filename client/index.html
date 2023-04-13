@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
+    <script src="app.js" defer></script>
+    <title>Document</title>
+</head>
+<body>
+    <div class="connect-container">
+        <input type="text" class="username-field" placeholder="USERNAME...">
+        <button class="connect-btn">CONNECT</button>
+
+    </div>
+
+    <select class="channel-selector"></select>
+    
+    <div class="chat-container">
+        <div class="chat-log">
+            <!-- <p>USER: MESSAGE</p>
+            <p>USER: MESSAGE</p>
+            <p>USER: MESSAGE</p> -->
+
+        </div>
+        <div class="broadcast">
+
+        </div>
+    </div>
+
+    <input type="text" class="msg-field">
+    <button class="send-btn">SEND</button>
+
+</body>
+</html>
