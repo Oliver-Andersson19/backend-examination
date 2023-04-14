@@ -23,5 +23,3 @@ httpServer.listen(port, () => { // Starta server
 });
 
 
-// Socket del
-

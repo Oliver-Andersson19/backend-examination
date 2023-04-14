@@ -7,7 +7,6 @@ const usernameField = document.querySelector('.username-field')
 const connectBtn = document.querySelector('.connect-btn')
 
 
-
 const URL = "http://185.75.42.93:3000";
 let socketIo = undefined;
 let isConnectionEstablished = false
@@ -19,8 +18,7 @@ let isConnectionEstablished = false
 fetch(URL + "/ducks/api/channel")
 .then(response => response.json())
 .then(data => {
-    data.forEach(channel => {
-        console.log(channel)
+    data.forEach(channel => { // sätt in kanaler i dropdown meny
         channelSelector.innerHTML += `<option>${channel.name}</option>`
     });
 })
@@ -30,19 +28,20 @@ fetch(URL + "/ducks/api/channel")
 
 
 function establishConnection() {
-    if (isConnectionEstablished) {
+    if (isConnectionEstablished) { // Kolla om redan är connected
         socketIo.disconnect()
         isConnectionEstablished = false;
         return;
     }
 
-
+    // connecta med rätt username
     socketIo = io('http://185.75.42.93:3000', {extraHeaders: {username: usernameField.value}});
 
     socketIo.on('connect', function () {
         console.log('Made socket connection', socketIo.id);
         isConnectionEstablished = true;
     });
+
 
     socketIo.on('disconnect', function () {
         console.log('disconnect');
@@ -66,11 +65,11 @@ function establishConnection() {
     });  
 }
 
-function updateMessages(channel) { // Fetchar messages från rätt kanal, triggas av socket
+function updateMessages(channel) { // Hämtar ner messages från rätt kanal, triggas av socket
     fetch(URL + "/ducks/api/channel/" + channel)
     .then(response => response.json())
     .then(data => {
-        if(data[0]) {
+        if(data[0]) { // Kolla om data finns
             chatLog.innerHTML = ""; // Töm chatlog
             data[0].messages.forEach(msg => { // Fyll med nya meddelanden
                 chatLog.innerHTML += `<p>${msg.sender}: ${msg.content}</p>`
@@ -106,12 +105,16 @@ function sendMessage() { // Skickar meddelanden
 
 
 
-channelSelector.addEventListener('click', (e) => {
+
+
+
+channelSelector.addEventListener('click', (e) => { // Körs varje gång man byter kanal
     updateMessages(e.target.value) // Hämta ner messages från kanalen man valt
 })
-connectBtn.addEventListener('click', () => {
+sendBtn.addEventListener('click', sendMessage) // Skicka meddelande
+connectBtn.addEventListener('click', () => { // Starta connection när man trycker connect
     establishConnection()
     fetchBroadcastMessages()
+    updateMessages(channelSelector.value)
 
-}) // Starta connection när man trycker connect
-sendBtn.addEventListener('click', sendMessage) // Skicka meddelande
+}) 

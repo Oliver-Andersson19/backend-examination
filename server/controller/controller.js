@@ -35,6 +35,8 @@ export function login(req, res) {
 }
 
 
+// GET
+
 
 export function getAllChannels (req, res) {
     // Ger tillbaka alla channels
@@ -83,7 +85,6 @@ export function createNewMessage(req, res) {
         
         getDbCollection("channels").find({ name: channelName }).toArray().then(channel => {
             if (channel.length != 0) { // Kolla om channel finns
-                console.log(channel)
                 // Pusha in message i message array i i rätt channel (kommer från url params)
                 getDbCollection("channels").updateOne( { "name": channelName } ,{ $push: { "messages": message } });
                 
@@ -139,7 +140,7 @@ export function createNewBroadcastMessage(req, res) {
 
 }
 
-
+// PUT
 
 export function createNewChannel(req, res) {
     
@@ -168,7 +169,7 @@ export function createNewChannel(req, res) {
     }
 }
 
-
+// DEL
 
 export function deleteChannel(req, res) {
 
